@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FossaPay Checkout example</title>
+  </head>
+  <body>
+    <button id="pay">Pay with FossaPay</button>
+    <script src="../../dist/browser/browser.global.js"></script>
+    <script>
+      document.querySelector("#pay").addEventListener("click", function () {
+        FossaPayCheckout.open({
+          paymentLink: "YOUR_PAYMENT_LINK",
+          onSuccess: function (payment) {
+            console.log("Payment successful", payment);
+          },
+        });
+      });
+    </script>
+  </body>
+</html>

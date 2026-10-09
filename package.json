@@ -1,0 +1,71 @@
+{
+  "name": "@fossapay/checkout",
+  "version": "0.1.0",
+  "description": "Official browser and React SDK for FossaPay hosted checkout",
+  "license": "MIT",
+  "author": "FossaPay",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/browser/browser.global.js",
+  "jsdelivr": "./dist/browser/browser.global.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    }
+  },
+  "scripts": {
+    "build": "npm run build:core && npm run build:browser",
+    "build:core": "tsup --config tsup.config.ts",
+    "build:browser": "tsup --config tsup.browser.config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "overrides": {
+    "esbuild": "^0.28.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FossaOrg/fossapay-checkout-sdk.git"
+  },
+  "keywords": [
+    "fossapay",
+    "checkout",
+    "payments",
+    "payment-link",
+    "nigeria"
+  ]
+}
