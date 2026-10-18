@@ -51,8 +51,11 @@ customers.
 ```ts
 import { openCheckout } from "@fossapay/checkout";
 
+const response = await fetch("/api/checkout", { method: "POST" });
+const { checkoutUrl } = await response.json();
+
 const checkout = openCheckout({
-  paymentLink: checkoutUrlFromYourServer,
+  paymentLink: checkoutUrl,
   onSuccess(event) {
     console.log("Checkout completed", event.status);
     // Confirm the payment on your server or from a signed webhook.
@@ -71,11 +74,11 @@ checkout.close();
 ```tsx
 import { FossaPayCheckoutButton } from "@fossapay/checkout/react";
 
-export function PayButton() {
+export function PayButton({ checkoutUrl }: { checkoutUrl: string }) {
   return (
     <FossaPayCheckoutButton
       checkout={{
-        paymentLink: checkoutUrlFromYourServer,
+        paymentLink: checkoutUrl,
         onSuccess: () => {
           // Ask your server for the final transaction status.
         },
@@ -93,9 +96,12 @@ export function PayButton() {
 <script src="https://unpkg.com/@fossapay/checkout/dist/browser/browser.global.js"></script>
 <button id="pay">Pay now</button>
 <script>
-  document.querySelector("#pay").addEventListener("click", function () {
+  document.querySelector("#pay").addEventListener("click", async function () {
+    const response = await fetch("/api/checkout", { method: "POST" });
+    const { checkoutUrl } = await response.json();
+
     FossaPayCheckout.open({
-      paymentLink: checkoutUrlFromYourServer,
+      paymentLink: checkoutUrl,
       onSuccess: function (event) {
         console.log(event.status);
       },

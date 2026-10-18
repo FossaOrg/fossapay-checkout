@@ -9,9 +9,12 @@
     <button id="pay">Pay with FossaPay</button>
     <script src="../../dist/browser/browser.global.js"></script>
     <script>
-      document.querySelector("#pay").addEventListener("click", function () {
+      document.querySelector("#pay").addEventListener("click", async function () {
+        const response = await fetch("/api/checkout", { method: "POST" });
+        const { checkoutUrl } = await response.json();
+
         FossaPayCheckout.open({
-          paymentLink: checkoutUrlFromYourServer,
+          paymentLink: checkoutUrl,
           onSuccess: function (payment) {
             console.log("Payment successful", payment);
           },

@@ -1,10 +1,14 @@
 import { FossaPayCheckoutButton } from "@fossapay/checkout/react";
 
-export function CheckoutButton() {
+export interface CheckoutButtonProps {
+  checkoutUrl: string;
+}
+
+export function CheckoutButton({ checkoutUrl }: CheckoutButtonProps) {
   return (
     <FossaPayCheckoutButton
       checkout={{
-        paymentLink: checkoutUrlFromYourServer,
+        paymentLink: checkoutUrl,
         onSuccess: (payment) => console.log(payment),
       }}
     >
