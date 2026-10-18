@@ -11,7 +11,7 @@
     <script>
       document.querySelector("#pay").addEventListener("click", function () {
         FossaPayCheckout.open({
-          paymentLink: "YOUR_PAYMENT_LINK",
+          paymentLink: checkoutUrlFromYourServer,
           onSuccess: function (payment) {
             console.log("Payment successful", payment);
           },

@@ -4,7 +4,7 @@ export function CheckoutButton() {
   return (
     <FossaPayCheckoutButton
       checkout={{
-        paymentLink: "YOUR_PAYMENT_LINK",
+        paymentLink: checkoutUrlFromYourServer,
         onSuccess: (payment) => console.log(payment),
       }}
     >

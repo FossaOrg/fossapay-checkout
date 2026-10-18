@@ -1,7 +1,7 @@
 {
   "name": "@fossapay/checkout",
   "version": "0.1.0",
-  "description": "Official browser and React SDK for FossaPay hosted checkout",
+  "description": "Official server, browser, and React SDK for FossaPay Checkout",
   "license": "MIT",
   "author": "FossaPay",
   "type": "module",
@@ -25,6 +25,11 @@
       "types": "./dist/react.d.ts",
       "import": "./dist/react.js",
       "require": "./dist/react.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
     }
   },
   "scripts": {

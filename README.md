@@ -1,8 +1,7 @@
 # FossaPay Checkout SDK
 
-The official browser SDK for opening [FossaPay](https://fossapay.com) hosted
-checkout from web applications. Payment collection remains inside FossaPay's
-hosted checkout; the SDK only controls how that checkout is presented.
+Add [FossaPay Checkout](https://fossapay.com) to your web application using a
+modal, inline frame, redirect, or new browser tab.
 
 ## Install
 
@@ -10,13 +9,50 @@ hosted checkout; the SDK only controls how that checkout is presented.
 npm install @fossapay/checkout
 ```
 
+## Create a payment link
+
+Create payment links from your application backend with a FossaPay API key.
+API keys are available under **Settings → API Keys** in the FossaPay Dashboard.
+
+```ts
+import { FossaPay } from "@fossapay/checkout/server";
+
+const fossapay = new FossaPay({
+  apiKey: process.env.FOSSAPAY_API_KEY!,
+});
+
+// Run this in an authenticated endpoint in your application.
+const paymentLink = await fossapay.paymentLinks.create(
+  {
+    title: "Order 10025",
+    type: "fixed",
+    amount: 25000,
+    currency: "NGN",
+    description: "Payment for order 10025",
+    collectUserInfo: true,
+    feeBearer: "customer",
+  },
+  {
+    idempotencyKey: "order-10025",
+  },
+);
+
+// Send only this URL to your frontend.
+return { checkoutUrl: paymentLink.checkoutUrl };
+```
+
+Keep the API key on your server. Return `paymentLink.checkoutUrl` or
+`paymentLink.reference` to your frontend and open it with the browser SDK.
+Fixed payment links are reusable and can accept payments from multiple
+customers.
+
 ## JavaScript and TypeScript
 
 ```ts
 import { openCheckout } from "@fossapay/checkout";
 
 const checkout = openCheckout({
-  paymentLink: "YOUR_PAYMENT_LINK",
+  paymentLink: checkoutUrlFromYourServer,
   onSuccess(event) {
     console.log("Checkout completed", event.status);
     // Confirm the payment on your server or from a signed webhook.
@@ -39,7 +75,7 @@ export function PayButton() {
   return (
     <FossaPayCheckoutButton
       checkout={{
-        paymentLink: "YOUR_PAYMENT_LINK",
+        paymentLink: checkoutUrlFromYourServer,
         onSuccess: () => {
           // Ask your server for the final transaction status.
         },
@@ -59,7 +95,7 @@ export function PayButton() {
 <script>
   document.querySelector("#pay").addEventListener("click", function () {
     FossaPayCheckout.open({
-      paymentLink: "YOUR_PAYMENT_LINK",
+      paymentLink: checkoutUrlFromYourServer,
       onSuccess: function (event) {
         console.log(event.status);
       },
@@ -97,10 +133,8 @@ The hosted checkout can emit:
 Use `onReady`, `onSuccess`, `onFailure`, `onReversed`, `onExpired`, `onClose`,
 or the general `onEvent` callback.
 
-Browser events are a user-interface convenience and are not proof of payment.
-The embedded checkout intentionally does not send transaction IDs, amounts, or
-payment references to the parent page. Confirm payment on your backend or from
-a verified FossaPay webhook before fulfilling an order.
+Use checkout events to update your interface. Confirm a successful payment on
+your server or through a verified FossaPay webhook before fulfilling an order.
 
 ## Configuration
 
@@ -116,12 +150,9 @@ a verified FossaPay webhook before fulfilling an order.
 
 ## Security
 
-- Messages are accepted only from the configured checkout origin and the exact
-  iframe created by this SDK.
-- The hosted checkout derives the parent origin from the browser referrer and
-  sends only lifecycle status events to that origin.
 - Never put a FossaPay secret key in browser code.
 - Always verify payment server-side before delivering value.
+- Keep the SDK updated to the latest supported version.
 
 ## Local development
 
@@ -130,15 +161,6 @@ npm install
 npm run typecheck
 npm test
 npm run build
-```
-
-## Publishing
-
-Maintainers should confirm the package name and npm organization access, update
-the version, run the verification commands above, and publish manually:
-
-```bash
-npm publish --access public
 ```
 
 ## License
