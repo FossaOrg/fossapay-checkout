@@ -46,6 +46,57 @@ Keep the API key on your server. Return `paymentLink.checkoutUrl` or
 Fixed payment links are reusable and can accept payments from multiple
 customers.
 
+Payment links are immutable after creation. They can be retrieved, listed,
+activated, or deactivated:
+
+```ts
+const link = await fossapay.paymentLinks.retrieve("LINK_REFERENCE");
+const links = await fossapay.paymentLinks.list();
+await fossapay.paymentLinks.deactivate(link.reference);
+await fossapay.paymentLinks.activate(link.reference);
+```
+
+## Create an order checkout
+
+Use a checkout session for a single order with your own unique reference:
+
+```ts
+const checkout = await fossapay.checkouts.create(
+  {
+    reference: "ORDER-10025",
+    amount: 25000,
+    currency: "NGN",
+    feeBearer: "customer",
+    customer: { email: "customer@example.com" },
+    metadata: { orderId: "10025" },
+  },
+  { idempotencyKey: "checkout-order-10025" },
+);
+
+const current = await fossapay.checkouts.retrieve(checkout.id);
+const sameCheckout = await fossapay.checkouts.retrieveByReference("ORDER-10025");
+await fossapay.checkouts.expire(checkout.id);
+```
+
+## Verify webhooks
+
+Pass the unmodified raw HTTP request body to `constructEvent`. Parsing and then
+serializing the body again can invalidate its signature.
+Use the `x-fossapay-signature-v2` header; the unversioned signature header is
+retained for integrations using the legacy signing format.
+
+```ts
+const event = fossapay.webhooks.constructEvent({
+  payload: rawRequestBody,
+  signature: request.headers["x-fossapay-signature-v2"],
+  secret: process.env.FOSSAPAY_WEBHOOK_SECRET!,
+});
+
+if (event.eventType === "checkout.completed") {
+  console.log(event.data);
+}
+```
+
 ## JavaScript and TypeScript
 
 ```ts
