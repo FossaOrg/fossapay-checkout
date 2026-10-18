@@ -206,9 +206,27 @@ export class FossaPayCheckout implements CheckoutController {
     }
 
     const event = message.data;
+    if (
+      this.normalizePaymentLink(event.data.paymentLink) !==
+      this.normalizePaymentLink(this.options.paymentLink)
+    ) {
+      return;
+    }
+
     this.options.onEvent?.(event);
     this.dispatch(event);
   };
+
+  private normalizePaymentLink(value: string): string {
+    const trimmed = value.trim();
+
+    try {
+      const url = new URL(trimmed);
+      return decodeURIComponent(url.pathname.replace(/^\/+|\/+$/g, "")).toLowerCase();
+    } catch {
+      return decodeURIComponent(trimmed.replace(/^\/+|\/+$/g, "")).toLowerCase();
+    }
+  }
 
   private dispatch(event: CheckoutEvent): void {
     switch (event.event) {

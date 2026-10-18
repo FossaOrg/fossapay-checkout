@@ -23,6 +23,7 @@ export function isCheckoutEvent(value: unknown): value is CheckoutEvent {
     typeof event.event === "string" &&
     checkoutEvents.has(event.event as CheckoutEventName) &&
     Boolean(event.data) &&
-    typeof event.data === "object"
+    typeof event.data === "object" &&
+    typeof (event.data as { paymentLink?: unknown }).paymentLink === "string"
   );
 }

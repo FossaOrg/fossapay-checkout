@@ -74,4 +74,60 @@ describe("FossaPayCheckout", () => {
     expect(onReady).toHaveBeenCalledWith({ paymentLink: "PAY_123" });
     checkout.destroy();
   });
+
+  it("ignores a trusted success event for a different payment link", () => {
+    const onSuccess = vi.fn();
+    const checkout = new FossaPayCheckout({
+      paymentLink: "PAY_123",
+      displayMode: "inline",
+      container: document.body,
+      onSuccess,
+    });
+    checkout.open();
+    const iframe = document.querySelector("iframe") as HTMLIFrameElement;
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: "https://checkout.fossapay.com",
+        source: iframe.contentWindow,
+        data: {
+          source: "fossapay.checkout",
+          version: 1,
+          event: "checkout.success",
+          data: { paymentLink: "PAY_456" },
+        },
+      }),
+    );
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    checkout.destroy();
+  });
+
+  it("matches a hosted checkout URL to its case-insensitive reference", () => {
+    const onSuccess = vi.fn();
+    const checkout = new FossaPayCheckout({
+      paymentLink: "https://checkout.fossapay.com/PAY_123",
+      displayMode: "inline",
+      container: document.body,
+      onSuccess,
+    });
+    checkout.open();
+    const iframe = document.querySelector("iframe") as HTMLIFrameElement;
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: "https://checkout.fossapay.com",
+        source: iframe.contentWindow,
+        data: {
+          source: "fossapay.checkout",
+          version: 1,
+          event: "checkout.success",
+          data: { paymentLink: "pay_123" },
+        },
+      }),
+    );
+
+    expect(onSuccess).toHaveBeenCalledWith({ paymentLink: "pay_123" });
+    checkout.destroy();
+  });
 });
