@@ -67,7 +67,7 @@ export interface CheckoutResponse {
   feeBearer: "customer" | "merchant";
   currency: "NGN";
   account: {
-    type: "temporary" | "permanent";
+    type: "temporary" | "permanent" | "order_wallet";
     bankName: string;
     accountName: string;
     accountNumber: string;
