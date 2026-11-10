@@ -14,6 +14,8 @@ export interface CreatePaymentLinkRequest {
   collectUserInfo?: boolean;
   feeBearer?: PaymentLinkFeeBearer;
   expiresAt?: string;
+  /** Reusable NGN split code returned by fossapay.splits.create(). */
+  splitCode?: string;
 }
 
 export interface IdempotencyOptions {
@@ -37,6 +39,7 @@ export interface PaymentLinkResponse {
   isActive: boolean;
   expiresAt?: string | null;
   createdAt?: string;
+  split?: { code: string; status: "attached" } | null;
 }
 
 export interface CheckoutCustomer {
@@ -54,6 +57,8 @@ export interface CreateCheckoutRequest {
   metadata?: Record<string, unknown>;
   description?: string;
   splitId?: string;
+  /** Reusable NGN split code. Prefer this over the legacy splitId. */
+  splitCode?: string;
 }
 
 export interface CheckoutResponse {
@@ -83,6 +88,96 @@ export interface CheckoutResponse {
   reversedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  split?: { code: string; version: number; status: "attached" } | null;
+}
+
+export type SplitType = "percentage" | "flat";
+export type SplitCollectionType = "checkout" | "direct_deposit";
+export type SplitFeePayer = "master_wallet" | "evenly_distributed" | "specific_recipient";
+export type SplitRecipientType = "subaccount" | "external_bank";
+
+export interface CreateSplitRequest {
+  name: string;
+  type: SplitType;
+  currency: "NGN";
+  collectionTypes: SplitCollectionType[];
+  minimumPaymentAmount?: string;
+}
+
+export interface UpdateSplitRequest {
+  name?: string;
+  collectionTypes?: SplitCollectionType[];
+  minimumPaymentAmount?: string;
+  feePayer?: SplitFeePayer;
+  feePayerRecipientId?: string | null;
+}
+
+export interface AddSplitRecipientRequest {
+  type: SplitRecipientType;
+  allocation: string;
+  virtualAccountId?: string;
+  accountNumber?: string;
+  bankCode?: string;
+}
+
+export interface SplitRecipient {
+  id: string;
+  type: SplitRecipientType;
+  virtualAccountId: string | null;
+  accountNumber: string;
+  accountName: string;
+  bankCode: string | null;
+  bankName: string | null;
+  allocation: string;
+}
+
+export interface TransactionSplit {
+  id: string;
+  splitCode: string;
+  name: string;
+  currency: "NGN";
+  type: SplitType;
+  status: "draft" | "active" | "paused";
+  collectionTypes: SplitCollectionType[];
+  minimumPaymentAmount: string | null;
+  feePayer: SplitFeePayer;
+  feePayerRecipientId: string | null;
+  version: number;
+  recipientCount?: number;
+  recipients?: SplitRecipient[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SplitPreview {
+  eligible: boolean;
+  reason: string | null;
+  grossAmount: string;
+  platformFee: string;
+  distributableAmount: string;
+  allocations: Array<{ recipientId: string; amount: string; platformFeeShare: string }>;
+  masterRemainder: string;
+  feePayer: SplitFeePayer;
+}
+
+export interface UpdateSplitSourcesRequest {
+  productIds?: string[];
+  storeIds?: string[];
+  paymentLinkIds?: string[];
+}
+
+export interface SplitSourceItem {
+  id: string;
+  name: string;
+  status: string;
+  splitId: string | null;
+  code?: string;
+}
+
+export interface SplitSources {
+  products: SplitSourceItem[];
+  stores: SplitSourceItem[];
+  paymentLinks: SplitSourceItem[];
 }
 
 export interface FossaPayWebhookEvent<T = Record<string, unknown>> {
@@ -132,6 +227,7 @@ interface ApiPaymentLink {
   isActive: boolean;
   expiresAt?: string | null;
   createdAt?: string;
+  split?: { code: string; status: "attached" } | null;
 }
 
 interface ApiEnvelope<T> {
@@ -158,6 +254,21 @@ export class FossaPay {
     retrieve: (id: string) => Promise<CheckoutResponse>;
     retrieveByReference: (reference: string) => Promise<CheckoutResponse>;
     expire: (id: string) => Promise<CheckoutResponse>;
+  };
+  readonly splits: {
+    create: (request: CreateSplitRequest) => Promise<TransactionSplit>;
+    list: () => Promise<TransactionSplit[]>;
+    retrieve: (splitCode: string) => Promise<TransactionSplit>;
+    update: (splitCode: string, request: UpdateSplitRequest) => Promise<TransactionSplit>;
+    addRecipient: (splitCode: string, request: AddSplitRecipientRequest) => Promise<SplitRecipient>;
+    updateRecipient: (splitCode: string, recipientId: string, allocation: string) => Promise<SplitRecipient>;
+    removeRecipient: (splitCode: string, recipientId: string) => Promise<{ deleted: boolean }>;
+    preview: (splitCode: string, amount: string, collectionType: SplitCollectionType) => Promise<SplitPreview>;
+    activate: (splitCode: string) => Promise<TransactionSplit>;
+    pause: (splitCode: string) => Promise<TransactionSplit>;
+    listSources: (splitCode: string) => Promise<SplitSources>;
+    updateSources: (splitCode: string, request: UpdateSplitSourcesRequest) => Promise<SplitSources>;
+    listTransactions: (splitCode: string) => Promise<Record<string, unknown>[]>;
   };
   readonly webhooks: {
     verifySignature: (payload: string, signature: string, secret: string) => boolean;
@@ -189,6 +300,21 @@ export class FossaPay {
       retrieve: (id) => this.request<CheckoutResponse>(`/checkouts/${encodeURIComponent(id)}`),
       retrieveByReference: (reference) => this.request<CheckoutResponse>(`/checkouts/reference/${encodeURIComponent(reference)}`),
       expire: (id) => this.request<CheckoutResponse>(`/checkouts/${encodeURIComponent(id)}/expire`, { method: "POST" }),
+    };
+    this.splits = {
+      create: (request) => this.request<TransactionSplit>("/splits", { method: "POST", body: JSON.stringify(request) }),
+      list: () => this.request<TransactionSplit[]>("/splits"),
+      retrieve: (code) => this.request<TransactionSplit>(`/splits/${encodeURIComponent(code)}`),
+      update: (code, request) => this.request<TransactionSplit>(`/splits/${encodeURIComponent(code)}`, { method: "PATCH", body: JSON.stringify(request) }),
+      addRecipient: (code, request) => this.request<SplitRecipient>(`/splits/${encodeURIComponent(code)}/recipients`, { method: "POST", body: JSON.stringify(request) }),
+      updateRecipient: (code, recipientId, allocation) => this.request<SplitRecipient>(`/splits/${encodeURIComponent(code)}/recipients/${encodeURIComponent(recipientId)}`, { method: "PATCH", body: JSON.stringify({ allocation }) }),
+      removeRecipient: (code, recipientId) => this.request<{ deleted: boolean }>(`/splits/${encodeURIComponent(code)}/recipients/${encodeURIComponent(recipientId)}`, { method: "DELETE" }),
+      preview: (code, amount, collectionType) => this.request<SplitPreview>(`/splits/${encodeURIComponent(code)}/preview?amount=${encodeURIComponent(amount)}&collectionType=${encodeURIComponent(collectionType)}`),
+      activate: (code) => this.request<TransactionSplit>(`/splits/${encodeURIComponent(code)}/activate`, { method: "POST" }),
+      pause: (code) => this.request<TransactionSplit>(`/splits/${encodeURIComponent(code)}/pause`, { method: "POST" }),
+      listSources: (code) => this.request<SplitSources>(`/splits/${encodeURIComponent(code)}/sources`),
+      updateSources: (code, request) => this.request<SplitSources>(`/splits/${encodeURIComponent(code)}/sources`, { method: "PUT", body: JSON.stringify(request) }),
+      listTransactions: (code) => this.request<Record<string, unknown>[]>(`/splits/${encodeURIComponent(code)}/transactions`),
     };
     this.webhooks = {
       verifySignature: this.verifyWebhookSignature,
@@ -222,6 +348,7 @@ export class FossaPay {
     isActive: link.isActive,
     expiresAt: link.expiresAt,
     createdAt: link.createdAt,
+    split: link.split ?? null,
   });
 
   private createPaymentLink = async (request: CreatePaymentLinkRequest, options: CreatePaymentLinkOptions = {}) => {

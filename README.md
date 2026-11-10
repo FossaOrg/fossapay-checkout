@@ -78,6 +78,49 @@ const sameCheckout = await fossapay.checkouts.retrieveByReference("ORDER-10025")
 await fossapay.checkouts.expire(checkout.id);
 ```
 
+## Create and use a transaction split
+
+Create a reusable split once, add its recipients, activate it, and pass the
+returned `splitCode` to any checkout or payment link that should use it.
+
+```ts
+const split = await fossapay.splits.create({
+  name: "Marketplace sellers",
+  type: "percentage",
+  currency: "NGN",
+  collectionTypes: ["checkout"],
+});
+
+await fossapay.splits.addRecipient(split.splitCode, {
+  type: "external_bank",
+  accountNumber: "0123456789",
+  bankCode: "000001",
+  allocation: "10",
+});
+
+await fossapay.splits.activate(split.splitCode);
+
+await fossapay.splits.updateSources(split.splitCode, {
+  productIds: ["PRODUCT_UUID"],
+  storeIds: ["STORE_UUID"],
+  paymentLinkIds: ["PAYMENT_LINK_UUID_1", "PAYMENT_LINK_UUID_2"],
+});
+
+const checkout = await fossapay.checkouts.create(
+  {
+    reference: "ORDER-10026",
+    amount: 25000,
+    currency: "NGN",
+    feeBearer: "customer",
+    splitCode: split.splitCode,
+  },
+  { idempotencyKey: "checkout-order-10026" },
+);
+```
+
+For a reusable payment link, set `splitCode` when the link is created. Every
+eligible payment through that link will use the saved split automatically.
+
 ## Verify webhooks
 
 Pass the unmodified raw HTTP request body to `constructEvent`. Parsing and then
