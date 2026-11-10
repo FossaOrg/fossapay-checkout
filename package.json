@@ -1,6 +1,6 @@
 {
   "name": "@fossapay/checkout",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Official server, browser, and React SDK for FossaPay Checkout",
   "license": "MIT",
   "author": "FossaPay",
